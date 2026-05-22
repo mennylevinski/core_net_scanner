@@ -19,12 +19,16 @@ import platform
 import socket
 import logging
 import datetime
+import requests
 import ipaddress
 import subprocess
 import concurrent.futures
 import threading
 import itertools
 import psutil
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 from typing import List, Dict, Iterable, Optional
 
 version = "1.6.0"
@@ -578,6 +582,47 @@ def _primary_mac() -> Optional[str]:
     except Exception:
         return None
 
+# ======= HTTP request (real detection) =======
+def http_probe(ip, timeout=2):
+    urls = [
+        f"http://{ip}",
+        f"http://{ip}:80",
+        f"http://{ip}:8080",
+        f"http://{ip}:8000",
+        f"https://{ip}",
+        f"https://{ip}:443",
+        f"https://{ip}:8443",
+    ]
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (NetworkScanner)"
+    }
+
+    for url in urls:
+        try:
+            r = requests.get(
+                url,
+                headers=headers,
+                timeout=(2, timeout),
+                allow_redirects=True,
+                verify=False   # important for routers with self-signed certs
+            )
+
+            return {
+                "url": url,
+                "status": r.status_code,
+                "server": r.headers.get("Server", "Unknown")
+            }
+
+        except requests.exceptions.SSLError:
+            # try again as HTTP fallback
+            continue
+
+        except requests.exceptions.RequestException:
+            continue
+
+    return None
+
 # ======= Connection Inspector (Controlled) =======
 def _get_process_name(pid):
     try:
@@ -895,6 +940,7 @@ def show_menu():
 
     print(f"{'scan -L':10} LAN scanning")
     print(f"{'scan -R':10} Custom IP range")
+    print(f"{'scan -S':10} HTTP service scanning (LAN only)")
     print(f"{'scan -T':10} Traffic Inspection")
     print(f"{'help':10} Show this menu")
     print(f"{'exit':10} Exit the program")
@@ -904,7 +950,7 @@ show_menu()
 while True:
     scan_mode = input("\n> ").strip().lower()
 
-    if scan_mode not in {"scan -l", "scan -r", "scan -t", "help", "exit", ""}:
+    if scan_mode not in {"scan -l", "scan -r", "scan -s", "scan -t", "help", "exit", ""}:
         print("Invalid command!")
         continue
 
@@ -969,63 +1015,124 @@ while True:
         print(f"\nTarget IPs: {len(target_ips)}")
         print(", ".join(target_ips[:10]) + (" ..." if len(target_ips) > 10 else ""))
 
-        choice = input("Start custom scan? (Y/N): ").strip().upper()
-        if choice != "Y":
-            print("Custom scan cancelled.")
-            input("Press Enter to exit...")
-            break
-
         logging.info(f"\nStarting custom scan for {len(target_ips)} targets...")
-        scan_results = {}
 
-        # Fixed: remove \n from spinner message
+        scan_results = {}
+        ip_mac = _parse_arp_table()
+
         spinner = Spinner("Running custom scan")
         spinner.start()
         start = time.time()
 
-        try:
-            for ip in target_ips:
-                # 0 Skip local IP
-                if local and ip == local:
-                    logging.info(f"\n[SKIP] {ip} is local — skipping.")
-                    continue
-                # 1 Only scan private IPs
-                if not is_private_ip(ip):
-                    logging.info(f"\n[SKIP] {ip} is not private — skipping.")
-                    break
-                # 2 Ping before scanning
-                if not _ping(ip, timeout_ms=400):
-                    continue
-                # 3 Convert single IP to /32 subnet for test_print
-                single_subnet = ipaddress.ip_network(f"{ip}/32")
-                # 4 Run silent scan
-                try:
-                    results = test_print(
-                        subnet=single_subnet,
-                        local_ip=local,
-                        do_port_scan=True,
-                        fast=True,
-                        silent=True
-                    )
+        # ONLY CHANGE: parallel loop
+        def process_ip(ip):
 
-                except Exception as e:
-                    logging.error(f"[ERROR] Scan failed for {ip}: {e}")
-                    continue
-                # 5 Collect unique results
-                if results:
-                    for d in results:
-                        key = d.get("ip") or d.get("mac")
-                        if key and key not in scan_results:
-                            scan_results[key] = d
+            # 0 Skip local IP
+            if local and ip == local:
+                logging.info(f"\n[SKIP] {ip} is local — skipping.")
+                return
+
+            # 1 Only scan private IPs
+            if not is_private_ip(ip):
+                logging.info(f"\n[SKIP] {ip} is not private — skipping.")
+                return
+
+            # 2 ICMP + ARP filter (UNCHANGED LOGIC)
+            if ip not in ip_mac and not _ping(ip, timeout_ms=400):
+                return
+
+            # 3 Convert to /32 subnet for test_print
+            single_subnet = ipaddress.ip_network(f"{ip}/32")
+
+            # 4 Run silent scan (UNCHANGED)
+            try:
+                results = test_print(
+                    subnet=single_subnet,
+                    local_ip=local,
+                    do_port_scan=True,
+                    fast=True,
+                    silent=True
+                )
+            except Exception as e:
+                logging.error(f"[ERROR] Scan failed for {ip}: {e}")
+                return
+
+            # 5 Collect results (UNCHANGED)
+            if results:
+                for d in results:
+                    key = d.get("ip") or d.get("mac")
+                    if key and key not in scan_results:
+                        scan_results[key] = d
+
+        try:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=50) as ex:
+                list(ex.map(process_ip, target_ips))
+
         finally:
             spinner.stop()
             elapsed = time.time() - start
-            if scan_results:  # True only if NOT empty
-                logging.info(f"Custom scan finished in {elapsed:.1f}s — found {len(scan_results)} devices.")
+
+            if scan_results:
+                logging.info(
+                    f"Custom scan finished in {elapsed:.1f}s — found {len(scan_results)} devices."
+                )
                 print_devices(list(scan_results.values()))
             else:
                 print(f"Custom scan finished in {elapsed:.1f}s - No devices found.")
 
+    elif scan_mode == "scan -s":
+
+        if not subnet:
+            print("No subnet detected.")
+            continue
+
+        ips = [str(ip) for ip in subnet.hosts()]
+
+        print(f"\nPre-filtering {len(ips)} hosts (ICMP + ARP)...")
+
+        alive_ips = set()
+        ip_mac = _parse_arp_table()
+
+        # STEP 1A: ICMP check
+        with concurrent.futures.ThreadPoolExecutor(max_workers=100) as ex:
+            for ip, ok in zip(ips, ex.map(_ping, ips)):
+                if ok:
+                    alive_ips.add(ip)
+
+        # STEP 1B: ARP fallback (THIS is what makes DG appear)
+        for ip in ip_mac.keys():
+            if ip in ips:
+                alive_ips.add(ip)
+
+        alive_ips = list(alive_ips)
+
+        print(f"Alive hosts: {len(alive_ips)}\n")
+
+        results = []
+
+        spinner = Spinner("Scanning HTTP services")
+        spinner.start()
+
+        try:
+            def check(ip):
+                return (ip, http_probe(ip, timeout=2))
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=80) as ex:
+                for ip, res in ex.map(check, alive_ips):
+                    if res:
+                        results.append({
+                            "ip": ip,
+                            "url": res["url"],
+                            "status": res["status"],
+                            "server": res["server"]
+                        })
+
+        finally:
+            spinner.stop()
+
+        for r in results:
+            logging.info(f"[HTTP] {r['ip']} → {r['status']} {r['server']}")
+            
     elif scan_mode == "scan -t":
         # --- Ask for timeout ---
         try:
