@@ -3,12 +3,25 @@ All notable changes to **Uspector Network Scanner** are documented in this file.
 
 ---
 
-## [1.5.0] – 2026-04-25 Latest
+## [1.6.0] – 2026-05-23 Latest
+### Added
+- Replaced numeric menu with command-based CLI interface (scan -L, scan -R, scan -T, help, exit)
+- Enhanced custom range scan performance by integrating ARP and ICMP-based filtering
+
+### Fixed
+- Fixed crash occurring when switching between scan modes repeatedly
+- Refined log formatting for improved readability
+
+---
+
+## [1.5.0] – 2026-04-25
 ### Added
 - Added a branded icon to the executable (EXE)
 - Updated and expanded common port scanning list to 53 unique ports
 - Enhanced real-time detection of short-lived TCP/HTTPS connections
 - Introduced pseudo-flow tracking for UDP traffic using socket observation
+
+### Fixed
 - Reduces noise by applying TTL-based deduplication for repeated UDP activity
 
 ---
