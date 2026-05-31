@@ -7,6 +7,7 @@ Author: Menahem Levinski
 Requirements:
  - Python 3.0+
  - pip install psutil
+ - pip install requests
 """
 
 import io
