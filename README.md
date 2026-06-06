@@ -39,7 +39,7 @@ For a detailed list of all common ports scanned by Uspector, see [PORTS.md](PORT
 
 ---
 
-## 🐉 Kali Linux
+## 📸 Kali Linux
 
 ![Uspector – LAN Scanning](media/uspector_screenshot1.png)
 
