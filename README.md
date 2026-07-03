@@ -78,10 +78,10 @@ If you trust this application, you may need to add it as an exception in your an
 - Download the script [net_scanner.py](src/net_scanner.py)
 
 #### 3️⃣ Run
-- Windows: `python uspector_net.py`
+- Windows: `python net_scanner.py`
 - Linux:<br> 
-      1. `chmod +x uspector_net.py` <br>
-      2. `python3 uspector_net.py`
+      1. `chmod +x net_scanner.py` <br>
+      2. `python3 net_scanner.py`
 
 ---
 
