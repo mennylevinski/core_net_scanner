@@ -131,6 +131,6 @@ By contributing, you agree that your contributions will be licensed under the sa
 
 ## 🙏 Thank You
 
-Every contribution, small or large, helps improve **Uspector Network Scanner**.
+Every contribution, small or large, helps improve **Net Scanner**.
 
 Thank you for supporting ethical, defensive, and responsible network diagnostics.
