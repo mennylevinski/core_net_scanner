@@ -89,7 +89,7 @@ def setup_logger(level=logging.INFO, logfile: Optional[str] = None):
     logging.basicConfig(level=level, handlers=handlers)
 
 # ======= Console helper =======
-def ensure_console(title: str = "Net Scanner"):
+def ensure_console(title: str = "Core Net Scanner"):
     """Ensure a console is available on Windows with black background / white text."""
     if sys.platform.startswith("win"):
         try:
@@ -1039,7 +1039,7 @@ def is_private_ip(ip: str) -> bool:
 
 # ======= Main =======
 if __name__ == "__main__":
-    ensure_console(f"Net Scanner")
+    ensure_console(f"Core Net Scanner")
 
     log_level = logging.DEBUG if "--debug" in sys.argv else logging.INFO
     log_file = None
@@ -1057,7 +1057,7 @@ if __name__ == "__main__":
     print(f"MIT License – © 2025 Menahem Levinski\n")
     interface, local = _get_default_interface_and_ip()
     mac = _primary_mac()
-    logging.info(f"Net Scanner v{version}\n")
+    logging.info(f"Core Net Scanner v{version}\n")
     logging.info(f"Interface: {interface or 'N/A'}")
     logging.info(f"Local MAC: {mac or 'N/A'}")   
     logging.info(f"Local Adapter IP: {local or 'N/A'}")
