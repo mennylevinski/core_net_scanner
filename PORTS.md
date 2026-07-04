@@ -2,7 +2,7 @@
 
 This file lists the common ports that **Core Net Scanner** scans, along with their standard protocols and associated services.  
 
-> Uspector can detect if these ports are open on your local IPv4 network.
+> It can detect if these ports are open on your local IPv4 network.
 
 | Port   | Protocol  | Service / Description              |
 |--------|-----------|------------------------------------|
