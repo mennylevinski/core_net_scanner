@@ -35,7 +35,7 @@ Licensed under the [MIT License](LICENSE).
 - **Basic Traffic Inspection** module, real-time monitoring of active TCP connections
 - **Logging system**, exportable log file (TXT format) for more detailed output
 
-For a detailed list of all common ports scanned by Net Scanner, see [PORTS.md](PORTS.md)
+For a complete list of the common ports scanned by the tool, see [PORTS.md](PORTS.md)
 
 ---
 
