@@ -335,7 +335,8 @@ def _ping(ip: str, timeout_ms: int = 300) -> bool:
     result = subprocess.run(
         cmd,
         stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
+        stderr=subprocess.DEVNULL,
+        **_subproc_kwargs_hide_window()
     )
     return result.returncode == 0
 
