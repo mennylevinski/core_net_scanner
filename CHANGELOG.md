@@ -2,7 +2,14 @@
 All notable changes to **Core Net Scanner** are documented in this file.
 
 ---
-## [1.8.0] – 2026-06-14 Latest
+
+## [1.9.0] – 2026-07-20 Latest
+### Fixed
+- Minor text corrections and console optimizations
+
+---
+
+## [1.8.0] – 2026-06-14
 ### Added
 - Added a new SMB detection scan option
 - Modified several scan commands in the CLI menu
