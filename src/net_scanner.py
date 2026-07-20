@@ -504,7 +504,7 @@ def discover_network(subnet, local_ip=None, do_port_scan=False, fast=False, port
     # ---- Step 0: Pre-populate ARP cache ----
     ips = [str(ip) for ip in subnet.hosts()]
     logging.info("")
-    logging.info(f"Pre-pinging {len(ips)} IPs to populate ARP cache...")
+    logging.info(f"Pre-pinging {len(ips)} IPs to populate ARP cache")
     with concurrent.futures.ThreadPoolExecutor(max_workers=200) as ex:
         list(ex.map(lambda ip: _ping(ip, timeout_ms=300), ips))
 
